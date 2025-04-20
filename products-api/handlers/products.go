@@ -3,10 +3,10 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 
 	"github.com/dipenkumarr/probably-a-microservice/data"
+	"github.com/gorilla/mux"
 )
 
 type Products struct {
@@ -17,42 +17,7 @@ func NewProducts(l *log.Logger) *Products {
 	return &Products{l: l}
 }
 
-func (p *Products) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		p.getProducts(w, r)
-		return
-	}
-
-	if r.Method == http.MethodPost {
-		p.addProduct(w, r)
-		return
-	}
-
-	if r.Method == http.MethodPut {
-		rgx := regexp.MustCompile(`/([0-9]+)`)
-		g := rgx.FindAllStringSubmatch(r.URL.Path, -1)
-
-		if len(g) != 1 {
-			http.Error(w, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-
-		if len(g[0]) != 2 {
-			http.Error(w, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-
-		idString := g[0][1]
-		id, _ := strconv.Atoi(idString)
-
-		p.updateProduct(id, w, r)
-		return
-	}
-
-	w.WriteHeader(http.StatusMethodNotAllowed)
-}
-
-func (p *Products) getProducts(w http.ResponseWriter, r *http.Request) {
+func (p *Products) GetProducts(w http.ResponseWriter, r *http.Request) {
 	p.l.Println("Handle GET Products")
 
 	lp := data.GetProducts()
@@ -62,7 +27,7 @@ func (p *Products) getProducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Products) addProduct(w http.ResponseWriter, r *http.Request) {
+func (p *Products) AddProduct(w http.ResponseWriter, r *http.Request) {
 	p.l.Println("Handle POST Product")
 
 	prod := &data.Product{}
@@ -74,8 +39,11 @@ func (p *Products) addProduct(w http.ResponseWriter, r *http.Request) {
 	data.AddProduct(prod)
 }
 
-func (p *Products) updateProduct(id int, w http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle PUT Product")
+func (p *Products) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+
+	p.l.Println("Handle PUT Product ", id)
 
 	prod := &data.Product{}
 	err := prod.FromJSON(r.Body)
